@@ -128,3 +128,21 @@ test("after the backend comes back, Retry reloads the page's data", async ({ pag
   await expect(page.getByText(/Couldn't load the overview/)).toBeHidden();
   await expect(page.getByTestId("kpi-active")).toHaveText("3");
 });
+
+test("upload from a deal's page: OCR with no partner match falls back to that deal; photo link shows", async ({ page }) => {
+  const api = await installFakeApi(page);
+  api.ocrResult = {
+    vendor: "TSS STORE #4", purchase_date: rel(-1), total: 99.5, line_items: [],
+    raw_text: "TSS STORE #4\nTOTAL 99.50", image_path: "2026-11/tss.jpg", suggested_partnership_id: null,
+  };
+  await page.goto("/partnerships/p-tss");
+  await page.getByRole("button", { name: /Add Receipts/ }).click();
+  await page.getByTestId("add-receipt-file").setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.getByLabel("Partnership *")).toHaveValue("p-tss");
+  await page.getByLabel("Units").fill("4");
+  await page.getByRole("button", { name: "Save receipt" }).click();
+  await expect(page.getByText("Receipt saved")).toBeVisible();
+  await page.getByRole("link", { name: "See Triangle Sports Supply progress" }).click();
+  const row = page.getByRole("row", { name: /TSS STORE #4/ });
+  await expect(row.getByRole("link", { name: "View" })).toHaveAttribute("href", /\/api\/receipts\/r-new-\d+\/image$/);
+});

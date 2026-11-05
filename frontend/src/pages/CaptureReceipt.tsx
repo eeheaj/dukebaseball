@@ -42,6 +42,12 @@ export default function CaptureReceipt() {
   const [event, setEvent] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
 
+  // Arriving from a partnership page's "Add Receipts": that deal is the fallback pick.
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const arrival = location.state as { file?: File; partnershipId?: string } | null;
+  const presetPartnership = useRef(arrival?.partnershipId ?? params.get("partnership") ?? "");
+
   const loadData = useCallback(() => {
     getPartnerships().then(setPartnerships).catch(() => {});
     listReceipts().then(setRecent).catch(() => {});
@@ -78,7 +84,7 @@ export default function CaptureReceipt() {
       setDate(r.purchase_date ?? today());
       setAmount(r.total != null ? r.total.toFixed(2) : "");
       setItems(r.line_items);
-      setPartnershipId(r.suggested_partnership_id ?? "");
+      setPartnershipId(r.suggested_partnership_id ?? presetPartnership.current);
       setStep("review");
     } catch (e) {
       setError((e as Error).message);
@@ -88,17 +94,16 @@ export default function CaptureReceipt() {
 
   function enterManually() {
     setOcr(null);
+    setPartnershipId((cur) => cur || presetPartnership.current);
     setStep("review");
   }
 
   // Arriving from the "Add Receipts" menu: scan the photo picked there, or open the form for manual entry.
-  const location = useLocation();
-  const [params] = useSearchParams();
   const arrived = useRef(false);
   useEffect(() => {
     if (arrived.current) return;
     arrived.current = true;
-    const handedOver = (location.state as { file?: File } | null)?.file;
+    const handedOver = arrival?.file;
     if (handedOver) {
       setFile(handedOver);
       void onScan(handedOver);

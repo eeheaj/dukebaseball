@@ -14,7 +14,8 @@ export default function Overview() {
   if (error) return <p className="banner error">Couldn't load the overview: {error}</p>;
   if (!data) return <p className="loading">Loading…</p>;
   const [kpis, rows, receipts] = data;
-  const company = (id: string) => rows.find((r) => r.p.id === id)?.p.company ?? "Unknown partner";
+  const company = (id: string | null) =>
+    id ? rows.find((r) => r.p.id === id)?.p.company ?? "Unknown partner" : "Not a partner";
 
   return (
     <>
@@ -54,7 +55,7 @@ export default function Overview() {
       </div>
       <div className="receipt-cards">
         {receipts.slice(0, 8).map((r) => (
-          <Link key={r.id} to={`/partnerships/${r.partnership_id}`} className="receipt-card">
+          <Link key={r.id} to={r.partnership_id ? `/partnerships/${r.partnership_id}` : "/receipts"} className="receipt-card">
             <span className="sub">{shortDate(r.purchase_date)}</span>
             <span className="who">
               <span className="avatar">{initials(company(r.partnership_id))}</span>

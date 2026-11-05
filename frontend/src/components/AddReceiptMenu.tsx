@@ -5,8 +5,9 @@ import { useNavigate } from "react-router";
  * "+ Add Receipts" with the two paths from the wireframe.
  * Upload photo: pick the photo here, then the capture page scans it right away.
  * Enter manually: the capture page opens straight on the form.
+ * partnershipId (from a deal's page) pre-picks that deal when OCR doesn't suggest one.
  */
-export default function AddReceiptMenu() {
+export default function AddReceiptMenu({ partnershipId }: { partnershipId?: string } = {}) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -35,7 +36,7 @@ export default function AddReceiptMenu() {
             <strong>Upload photo</strong>
             <span>Auto-fills the details</span>
           </button>
-          <button role="menuitem" onClick={() => { setOpen(false); navigate("/receipts/new?manual=1"); }}>
+          <button role="menuitem" onClick={() => { setOpen(false); navigate(`/receipts/new?manual=1${partnershipId ? `&partnership=${encodeURIComponent(partnershipId)}` : ""}`); }}>
             <strong>Enter manually</strong>
             <span>Type it in</span>
           </button>
@@ -52,7 +53,7 @@ export default function AddReceiptMenu() {
           const file = e.target.files?.[0];
           e.target.value = "";
           // A File survives in history state, so the capture page can scan it on arrival.
-          if (file) navigate("/receipts/new", { state: { file } });
+          if (file) navigate("/receipts/new", { state: { file, partnershipId } });
         }}
       />
     </div>

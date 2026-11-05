@@ -22,6 +22,10 @@ class ReceiptImageStore:
         self.db.storage.from_(self.BUCKET).upload(path, data, {"content-type": content_type})
         return path
 
+    def signed_url(self, path: str, expires_in: int = 300) -> str | None:
+        """Short-lived link to a private photo, so the browser can show it."""
+        return self.db.storage.from_(self.BUCKET).create_signed_url(path, expires_in).get("signedURL")
+
 
 class PartnershipRepo:
     def __init__(self, db: Client):
@@ -62,6 +66,10 @@ class ReceiptRepo:
         if partnership_id:
             q = q.eq("partnership_id", partnership_id)
         return q.execute().data
+
+    def get(self, receipt_id: str) -> dict | None:
+        rows = self.db.table("receipts").select("*").eq("id", receipt_id).execute().data
+        return rows[0] if rows else None
 
     def same_day_same_vendor(self, vendor: str, purchase_date: str) -> list[dict]:
         return (

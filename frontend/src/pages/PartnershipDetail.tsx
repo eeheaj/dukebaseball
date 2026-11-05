@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
-import { getPartnership, getProgress, listReceipts } from "../api";
+import { getPartnership, getProgress, listReceipts, receiptImageUrl } from "../api";
+import AddReceiptMenu from "../components/AddReceiptMenu";
 import PaceChart from "../components/PaceChart";
 import ProgressBar from "../components/ProgressBar";
 import StatusPill from "../components/StatusPill";
@@ -21,6 +22,7 @@ export default function PartnershipDetail() {
     <>
       <div className="page-head">
         <h1 className="with-back"><Link to="/partnerships" aria-label="Back to partnerships">←</Link>{p.company}</h1>
+        <AddReceiptMenu partnershipId={p.id} />
       </div>
 
       <div className="detail-grid">
@@ -55,7 +57,7 @@ export default function PartnershipDetail() {
       <div className="panel">
         <table className="table">
           <thead>
-            <tr><th>Date</th><th>Vendor</th><th>Total</th>{units && <th>Units</th>}<th>Trip / event</th></tr>
+            <tr><th>Date</th><th>Vendor</th><th>Total</th>{units && <th>Units</th>}<th>Trip / event</th><th>Photo</th></tr>
           </thead>
           <tbody>
             {receipts.map((r) => (
@@ -65,9 +67,10 @@ export default function PartnershipDetail() {
                 <td>{money(r.amount, true)}</td>
                 {units && <td>{r.units ?? "-"}</td>}
                 <td>{r.event ?? ""}</td>
+                <td>{r.image_path && <a href={receiptImageUrl(r.id)} target="_blank" rel="noreferrer">View</a>}</td>
               </tr>
             ))}
-            {receipts.length === 0 && <tr><td colSpan={5} className="empty">No receipts yet.</td></tr>}
+            {receipts.length === 0 && <tr><td colSpan={units ? 6 : 5} className="empty">No receipts yet.</td></tr>}
           </tbody>
         </table>
       </div>

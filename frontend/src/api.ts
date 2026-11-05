@@ -119,6 +119,9 @@ export function scanReceipt(file: File) {
   return request<OcrResult>("/ocr/receipt", { method: "POST", body: form });
 }
 
+/** Opens the stored receipt photo (the backend redirects to a short-lived Supabase link). */
+export const receiptImageUrl = (receiptId: string) => `/api/receipts/${encodeURIComponent(receiptId)}/image`;
+
 export const validateReceipt = (receipt: ReceiptCreate, ocr: OcrResult | null) =>
   request<string[]>("/receipts/validate", json({ receipt, ocr }));
 

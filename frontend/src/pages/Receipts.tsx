@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { getPartnerships, listReceipts } from "../api";
+import { getPartnerships, listReceipts, receiptImageUrl } from "../api";
 import AddReceiptMenu from "../components/AddReceiptMenu";
 import { addDays, money, shortDate, todayISO } from "../format";
 import { useApi } from "../useApi";
@@ -14,7 +14,8 @@ export default function Receipts() {
   const [range, setRange] = useState<keyof typeof RANGES>("all");
 
   const [receipts, partnerships] = data ?? [[], []];
-  const company = (id: string) => partnerships.find((p) => p.id === id)?.company ?? "Unknown partner";
+  const company = (id: string | null) =>
+    id ? partnerships.find((p) => p.id === id)?.company ?? "Unknown partner" : "Not a partner";
   const since = range === "all" ? null : addDays(todayISO(), -Number(range));
   const shown = receipts
     .filter((r) => partnerId === "all" || r.partnership_id === partnerId)
@@ -47,12 +48,22 @@ export default function Receipts() {
           </thead>
           <tbody>
             {shown.map((r) => (
-              <tr key={r.id} className="clickable" onClick={() => navigate(`/partnerships/${r.partnership_id}`)}>
+              <tr
+                key={r.id}
+                className={r.partnership_id ? "clickable" : ""}
+                onClick={() => r.partnership_id && navigate(`/partnerships/${r.partnership_id}`)}
+              >
                 <td>{shortDate(r.purchase_date)}</td>
                 <td>{company(r.partnership_id)}</td>
                 <td>{r.vendor}</td>
                 <td>{money(r.amount, true)}</td>
-                <td>{r.image_path ? "Attached" : ""}</td>
+                <td>
+                  {r.image_path && (
+                    <a href={receiptImageUrl(r.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                      View
+                    </a>
+                  )}
+                </td>
                 {/* logged_by stays empty until sign-in is built (DEV_NO_AUTH). */}
                 <td>{r.logged_by ? "Staff" : "Not recorded"}</td>
               </tr>
