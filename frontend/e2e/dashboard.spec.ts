@@ -114,3 +114,17 @@ test("backend down shows the setup banner instead of failing silently", async ({
   await expect(page.getByText("Backend not reachable.")).toBeVisible();
   await expect(page.getByText(/Couldn't load partnerships/)).toBeVisible();
 });
+
+test("after the backend comes back, Retry reloads the page's data", async ({ page }) => {
+  await installFakeApi(page);
+  let down = true;
+  await page.route("**/api/**", (r) => (down ? r.fulfill({ status: 500, body: "proxy error" }) : r.fallback()));
+  await page.goto("/");
+  await expect(page.getByText("Backend not reachable.")).toBeVisible();
+  await expect(page.getByText(/Couldn't load the overview/)).toBeVisible();
+  down = false;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByText("Backend not reachable.")).toBeHidden();
+  await expect(page.getByText(/Couldn't load the overview/)).toBeHidden();
+  await expect(page.getByTestId("kpi-active")).toHaveText("3");
+});

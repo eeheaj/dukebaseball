@@ -1,19 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getStatus, type SetupStatus } from "../api";
 
 /** Shows what's missing (Tesseract, keys, tables) so the flow never fails silently. */
-export default function SetupBanner({ onReady }: { onReady?: () => void }) {
+/** onRecover fires when setup goes from broken to ready (e.g. after Retry), so pages can reload. */
+export default function SetupBanner({ onReady, onRecover }: { onReady?: () => void; onRecover?: () => void }) {
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [backendDown, setBackendDown] = useState(false);
+
+  const wasBroken = useRef(false);
 
   const check = () =>
     getStatus()
       .then((s) => {
         setStatus(s);
         setBackendDown(false);
-        if (s.ready) onReady?.();
+        if (s.ready) {
+          onReady?.();
+          if (wasBroken.current) onRecover?.();
+        }
+        wasBroken.current = !s.ready;
       })
-      .catch(() => setBackendDown(true));
+      .catch(() => {
+        setBackendDown(true);
+        wasBroken.current = true;
+      });
 
   useEffect(() => {
     check();
