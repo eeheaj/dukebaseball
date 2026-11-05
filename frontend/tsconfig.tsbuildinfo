@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/components/recentreceipts.tsx","./src/components/setupbanner.tsx","./src/components/stepper.tsx","./src/pages/capturereceipt.tsx","./vite.config.ts"],"version":"5.8.3"}
