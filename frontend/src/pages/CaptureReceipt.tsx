@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router";
 import {
   createReceipt,
   getPartnerships,
@@ -64,12 +65,12 @@ export default function CaptureReceipt() {
     setStep("photo");
   }
 
-  async function onScan() {
-    if (!file) return;
+  async function onScan(photo: File | null = file) {
+    if (!photo) return;
     setError(null);
     setStep("scanning");
     try {
-      const r = await scanReceipt(file);
+      const r = await scanReceipt(photo);
       setOcr(r);
       setVendor(r.vendor ?? "");
       setDate(r.purchase_date ?? today());
@@ -87,6 +88,23 @@ export default function CaptureReceipt() {
     setOcr(null);
     setStep("review");
   }
+
+  // Arriving from the "Add Receipts" menu: scan the photo picked there, or open the form for manual entry.
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (arrived.current) return;
+    arrived.current = true;
+    const handedOver = (location.state as { file?: File } | null)?.file;
+    if (handedOver) {
+      setFile(handedOver);
+      void onScan(handedOver);
+    } else if (params.get("manual")) {
+      enterManually();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function buildReceipt(): ReceiptCreate | null {
     if (!partnershipId) return setError("Pick a partnership."), null;
@@ -182,7 +200,7 @@ export default function CaptureReceipt() {
 
           {file ? (
             <div className="actions">
-              <button className="primary" onClick={onScan} disabled={step === "scanning"}>
+              <button className="primary" onClick={() => onScan()} disabled={step === "scanning"}>
                 {step === "scanning" ? "Scanning…" : "Scan receipt"}
               </button>
               <button className="secondary" onClick={() => pickFile(null)} disabled={step === "scanning"}>
@@ -334,6 +352,7 @@ export default function CaptureReceipt() {
           <button className="primary wide" onClick={reset}>
             Scan another receipt
           </button>
+          {selected && <Link to={`/partnerships/${selected.id}`}>See {selected.company} progress</Link>}
         </section>
       )}
 
