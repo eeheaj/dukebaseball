@@ -11,7 +11,7 @@ class LineItem(BaseModel):
 
 
 class ReceiptBase(BaseModel):
-    partnership_id: UUID
+    partnership_id: UUID | None = None  # None = not a partner purchase
     vendor: str
     purchase_date: date
     amount: float

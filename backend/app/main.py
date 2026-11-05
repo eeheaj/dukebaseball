@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from postgrest.exceptions import APIError
 
 from app.api import exports, ocr, overview, partnerships, receipts, status
 from app.config import get_settings
@@ -32,6 +34,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+_DB_HINTS = {
+    # Postgres error code -> what to do about it
+    "23502": "A required field is empty in the database. If this is a non-partner receipt, "
+    "apply supabase/migrations/20261105010000_optional_partnership.sql in the SQL Editor.",
+    "42501": "Permission denied by Supabase. Check SUPABASE_SERVICE_ROLE_KEY in .env.",
+    "42P01": "Table missing. Apply the migrations in supabase/migrations.",
+    "23503": "That partnership no longer exists. Refresh the page and pick again.",
+}
+
+
+@app.exception_handler(APIError)
+async def supabase_error(_request: Request, exc: APIError) -> JSONResponse:
+    """Turn Supabase/Postgres errors into a readable message instead of a bare 500."""
+    log.error("Supabase error %s: %s", exc.code, exc.message)
+    hint = _DB_HINTS.get(str(exc.code), "")
+    return JSONResponse(status_code=400, content={"detail": f"Database error: {exc.message}. {hint}".strip()})
 
 
 @app.get("/health")

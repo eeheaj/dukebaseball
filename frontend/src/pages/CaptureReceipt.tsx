@@ -18,6 +18,8 @@ import Stepper from "../components/Stepper";
 type Step = "photo" | "scanning" | "review" | "saving" | "saved";
 
 const today = () => new Date().toISOString().slice(0, 10);
+// Dropdown value for receipts that don't count toward any partnership ("" = nothing chosen yet).
+const NON_PARTNER = "none";
 const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function CaptureReceipt() {
@@ -89,12 +91,12 @@ export default function CaptureReceipt() {
   }
 
   function buildReceipt(): ReceiptCreate | null {
-    if (!partnershipId) return setError("Pick a partnership."), null;
+    if (!partnershipId) return setError('Pick a partnership, or "Not a partner purchase".'), null;
     if (!vendor.trim()) return setError("Vendor is required."), null;
     const amt = Number(amount);
     if (!amount || Number.isNaN(amt)) return setError("Enter the total amount."), null;
     return {
-      partnership_id: partnershipId,
+      partnership_id: partnershipId === NON_PARTNER ? null : partnershipId,
       vendor: vendor.trim(),
       purchase_date: date,
       amount: amt,
@@ -228,13 +230,28 @@ export default function CaptureReceipt() {
               onChange={(e) => setPartnershipId(e.target.value)}
             >
               <option value="">{partnerships.length ? "Select…" : "No partnerships yet: run the seed SQL"}</option>
-              {partnerships.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.company}
-                  {p.id === ocr?.suggested_partnership_id ? "  ★ suggested" : ""}
-                </option>
-              ))}
+              {partnerships.length > 0 && (
+                <optgroup label="Partnerships">
+                  {partnerships.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.company}
+                      {p.id === ocr?.suggested_partnership_id ? "  ★ suggested" : ""}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="Other">
+                <option value={NON_PARTNER}>Not a partner purchase</option>
+              </optgroup>
             </select>
+            {ocr && !ocr.suggested_partnership_id && !partnershipId && (
+              <span className="hint">
+                No partner matched “{ocr.vendor ?? "this vendor"}”. Pick one, or choose “Not a partner purchase”.
+              </span>
+            )}
+            {partnershipId === NON_PARTNER && (
+              <span className="hint">Logged and exported, but won’t count toward any partnership.</span>
+            )}
           </label>
           <label>
             Vendor *
@@ -329,7 +346,9 @@ export default function CaptureReceipt() {
             <br />
             {money(Number(amount))} on {date}
             <br />
-            <span className="muted">counted toward {selected?.company}</span>
+            <span className="muted">
+              {selected ? `counted toward ${selected.company}` : "not a partner purchase: not counted toward any partnership"}
+            </span>
           </p>
           <button className="primary wide" onClick={reset}>
             Scan another receipt

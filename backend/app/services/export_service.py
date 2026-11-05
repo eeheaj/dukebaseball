@@ -5,13 +5,14 @@ from openpyxl import Workbook
 
 # TODO: replace with the exact columns from the team's existing Excel sheet.
 RECEIPT_COLUMNS = ["Date", "Vendor", "Partner", "Amount", "Units", "Event", "Logged By"]
+NON_PARTNER_LABEL = "Non-partner"
 
 
 def _receipt_row(r: dict) -> list:
     return [
         r.get("purchase_date"),
         r.get("vendor"),
-        (r.get("partnerships") or {}).get("company"),
+        (r.get("partnerships") or {}).get("company") or NON_PARTNER_LABEL,
         r.get("amount"),
         r.get("units"),
         r.get("event"),

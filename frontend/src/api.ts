@@ -26,7 +26,7 @@ export interface OcrResult {
 }
 
 export interface ReceiptCreate {
-  partnership_id: string;
+  partnership_id: string | null; // null = not a partner purchase
   vendor: string;
   purchase_date: string;
   amount: number;

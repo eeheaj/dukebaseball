@@ -141,6 +141,7 @@ button:disabled { cursor: not-allowed; }
 .chip { font-size: 0.75rem; padding: 3px 8px; border-radius: 999px; font-weight: 600; }
 .chip.ok { background: #e3f4e8; color: var(--ok); }
 .chip.no { background: var(--warn-bg); color: #9a6700; }
+.hint { font-size: 0.8rem; font-weight: 400; color: var(--muted); }
 input.missing, select.missing { border-color: #e0a800; box-shadow: 0 0 0 1px #e0a800; }
 
 /* Saved step */

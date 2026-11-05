@@ -4,7 +4,8 @@ const money = (n: number) => n.toLocaleString("en-US", { style: "currency", curr
 
 export default function RecentReceipts({ receipts, partnerships }: { receipts: Receipt[]; partnerships: Partnership[] }) {
   if (!receipts.length) return null;
-  const company = (id: string) => partnerships.find((p) => p.id === id)?.company ?? "—";
+  const company = (id: string | null) =>
+    id ? partnerships.find((p) => p.id === id)?.company ?? "—" : "Non-partner";
   return (
     <section className="card">
       <h2>Recent receipts</h2>
