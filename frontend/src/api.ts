@@ -1,12 +1,39 @@
 // Types mirror backend/app/schemas/*.py. Keep them in sync (or generate from /openapi.json later).
 
-export interface Partnership {
-  id: string;
+export interface PartnershipCreate {
   company: string;
+  contact_name: string | null;
+  contact_email: string | null;
   commitment_type: "spend" | "units";
   target: number;
-  start_date: string;
+  start_date: string; // YYYY-MM-DD
   end_date: string;
+  discount_pct: number | null;
+  deliverables: string | null; // one per line
+  tags: string[];
+}
+
+export interface Partnership extends PartnershipCreate {
+  id: string;
+  contract_path: string | null;
+}
+
+export type PartnershipStatus = "on_track" | "at_risk" | "complete";
+
+/** Computed by the backend (services/progress_service.py). The UI never recomputes these. */
+export interface PartnershipProgress {
+  progress: number;
+  progress_pct: number;
+  days_left: number;
+  actual_pace: number;
+  required_pace: number;
+  status: PartnershipStatus;
+}
+
+export interface Overview {
+  active_deals: number;
+  at_risk_deals: number;
+  season_spend: number;
 }
 
 export interface LineItem {
@@ -75,7 +102,16 @@ export const getStatus = () => request<SetupStatus>("/status");
 
 export const getPartnerships = () => request<Partnership[]>("/partnerships");
 
-export const listReceipts = () => request<Receipt[]>("/receipts");
+export const getPartnership = (id: string) => request<Partnership>(`/partnerships/${id}`);
+
+export const getProgress = (id: string) => request<PartnershipProgress>(`/partnerships/${id}/progress`);
+
+export const createPartnership = (body: PartnershipCreate) => request<Partnership>("/partnerships", json(body));
+
+export const getOverview = () => request<Overview>("/overview");
+
+export const listReceipts = (partnershipId?: string) =>
+  request<Receipt[]>(partnershipId ? `/receipts?partnership_id=${encodeURIComponent(partnershipId)}` : "/receipts");
 
 export function scanReceipt(file: File) {
   const form = new FormData();
