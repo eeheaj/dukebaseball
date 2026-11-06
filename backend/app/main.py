@@ -17,6 +17,8 @@ settings = get_settings()
 async def lifespan(_app: FastAPI):
     # Never log key values, only which kind is in use.
     log.info("Supabase key in use: %s | DEV_NO_AUTH=%s", settings.supabase_key_kind, settings.dev_no_auth)
+    if settings.dev_no_auth:
+        log.warning("DEV_NO_AUTH is on: every API route is open. Never use this on a public deploy.")
     if settings.supabase_key_kind == "publishable":
         log.warning(
             "Only the publishable key is set: inserts/uploads need SUPABASE_SECRET_KEY "

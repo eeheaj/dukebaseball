@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router";
-import { getPartnership, getProgress, listReceipts, receiptImageUrl } from "../api";
+import { getPartnership, getProgress, listReceipts } from "../api";
 import AddReceiptMenu from "../components/AddReceiptMenu";
+import PhotoLink from "../components/PhotoLink";
 import PaceChart from "../components/PaceChart";
 import ProgressBar from "../components/ProgressBar";
 import StatusPill from "../components/StatusPill";
@@ -67,7 +68,7 @@ export default function PartnershipDetail() {
                 <td>{money(r.amount, true)}</td>
                 {units && <td>{r.units ?? "-"}</td>}
                 <td>{r.event ?? ""}</td>
-                <td>{r.image_path && <a href={receiptImageUrl(r.id)} target="_blank" rel="noreferrer">View</a>}</td>
+                <td>{r.image_path && <PhotoLink receiptId={r.id} />}</td>
               </tr>
             ))}
             {receipts.length === 0 && <tr><td colSpan={units ? 6 : 5} className="empty">No receipts yet.</td></tr>}

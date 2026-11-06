@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from supabase import Client
 
@@ -42,14 +41,14 @@ def get_image_store(db: Client = Depends(get_supabase)) -> ReceiptImageStore:
     return ReceiptImageStore(db)
 
 
-@router.get("/{receipt_id}/image")
+@router.get("/{receipt_id}/image-url")
 def receipt_image(
     receipt_id: UUID,
     repo: ReceiptRepo = Depends(get_receipt_repo),
     store: ReceiptImageStore = Depends(get_image_store),
     _user=Depends(get_current_user),
 ):
-    """Redirect to a short-lived link for the photo the OCR step stored."""
+    """A 5-minute link to the photo the OCR step stored. JSON (not a redirect) so it works with sign-in."""
     receipt = repo.get(str(receipt_id))
     if not receipt:
         raise HTTPException(404, "Receipt not found")
@@ -58,7 +57,7 @@ def receipt_image(
     url = store.signed_url(receipt["image_path"])
     if not url:
         raise HTTPException(404, "Photo is missing from storage")
-    return RedirectResponse(url, status_code=307)
+    return {"url": url}
 
 
 @router.post("", response_model=Receipt, status_code=201)

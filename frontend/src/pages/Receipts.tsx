@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { getPartnerships, listReceipts, receiptImageUrl } from "../api";
+import { getPartnerships, listReceipts } from "../api";
 import AddReceiptMenu from "../components/AddReceiptMenu";
+import PhotoLink from "../components/PhotoLink";
 import { addDays, money, shortDate, todayISO } from "../format";
 import { useApi } from "../useApi";
 
@@ -58,11 +59,7 @@ export default function Receipts() {
                 <td>{r.vendor}</td>
                 <td>{money(r.amount, true)}</td>
                 <td>
-                  {r.image_path && (
-                    <a href={receiptImageUrl(r.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                      View
-                    </a>
-                  )}
+                  {r.image_path && <PhotoLink receiptId={r.id} />}
                 </td>
                 {/* logged_by stays empty until sign-in is built (DEV_NO_AUTH). */}
                 <td>{r.logged_by ? "Staff" : "Not recorded"}</td>

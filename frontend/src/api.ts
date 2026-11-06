@@ -1,5 +1,8 @@
 // Types mirror backend/app/schemas/*.py. Keep them in sync (or generate from /openapi.json later).
 
+// Local dev: "" (Vite proxies /api to the backend). Netlify: the Render URL, set as VITE_API_URL.
+const API = `${(import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "")}/api`;
+
 export interface PartnershipCreate {
   company: string;
   contact_name: string | null;
@@ -64,7 +67,7 @@ export interface ReceiptCreate {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, init);
+  const res = await fetch(`${API}${path}`, init);
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`;
     try {
@@ -119,8 +122,25 @@ export function scanReceipt(file: File) {
   return request<OcrResult>("/ocr/receipt", { method: "POST", body: form });
 }
 
-/** Opens the stored receipt photo (the backend redirects to a short-lived Supabase link). */
-export const receiptImageUrl = (receiptId: string) => `/api/receipts/${encodeURIComponent(receiptId)}/image`;
+/**
+ * Opens a receipt's stored photo in a new tab. The tab opens first (while we still have the click,
+ * so popup blockers allow it), then gets the short-lived link from the backend.
+ */
+export async function openReceiptPhoto(receiptId: string) {
+  const tab = window.open("", "_blank");
+  try {
+    const { url } = await request<{ url: string }>(`/receipts/${encodeURIComponent(receiptId)}/image-url`);
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else {
+      window.location.href = url;
+    }
+  } catch (e) {
+    tab?.close();
+    throw e;
+  }
+}
 
 export const validateReceipt = (receipt: ReceiptCreate, ocr: OcrResult | null) =>
   request<string[]>("/receipts/validate", json({ receipt, ocr }));
