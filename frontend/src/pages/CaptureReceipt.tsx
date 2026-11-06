@@ -15,6 +15,7 @@ import {
 import RecentReceipts from "../components/RecentReceipts";
 import SetupBanner from "../components/SetupBanner";
 import Stepper from "../components/Stepper";
+import { useIsMobile } from "../useIsMobile";
 
 type Step = "photo" | "scanning" | "review" | "saving" | "saved";
 
@@ -24,6 +25,7 @@ const NON_PARTNER = "none";
 const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function CaptureReceipt() {
+  const mobile = useIsMobile();
   const [partnerships, setPartnerships] = useState<Partnership[]>([]);
   const [recent, setRecent] = useState<Receipt[]>([]);
   const [step, setStep] = useState<Step>("photo");
@@ -193,7 +195,7 @@ export default function CaptureReceipt() {
             ) : (
               <span className="photo-empty">
                 <span className="photo-icon">📷</span>
-                Take or choose a photo of the receipt
+                {mobile ? "Tap to take a photo of the receipt" : "Choose a photo of the receipt"}
                 <span className="muted small">Lay it flat, fill the frame, good light</span>
               </span>
             )}
@@ -202,7 +204,13 @@ export default function CaptureReceipt() {
                 <span className="spinner" /> Reading receipt…
               </span>
             )}
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
+            <input
+              type="file"
+              accept="image/*"
+              capture={mobile ? "environment" : undefined}
+              data-testid="capture-file"
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
           </label>
 
           {file ? (

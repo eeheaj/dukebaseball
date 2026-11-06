@@ -15,8 +15,24 @@ _DATE_RES = [
     (re.compile(r"\b(\d{1,2}/\d{1,2}/\d{2})\b"), "%m/%d/%y"),
     (re.compile(r"\b(\d{4}-\d{2}-\d{2})\b"), "%Y-%m-%d"),
 ]
-_ITEM_RE = re.compile(r"^(?P<desc>[A-Za-z].*?)\s+\$?(?P<amt>\d+\.\d{2})$")
-_SKIP_WORDS = ("total", "subtotal", "tax", "change", "cash", "visa", "mastercard", "amex", "balance")
+# A price at the end of a line. Allows "$ 4.99", "4,99", "4. 99", a trailing tax flag ("4.99 T",
+# "4.99 FA") or OCR junk ("4.99 |"), and O/o/l/I misread as digits ("4.9O").
+_D = r"[\dOolI]"
+_PRICE_TAIL = re.compile(
+    rf"(?P<neg>-)?\$?\s*(?P<amt>{_D}{{1,5}}\s?[.,]\s?{_D}{{2}})(?P<neg2>-)?(?:\s+[A-Za-z]{{1,2}})?[\s*#|)\]]*$"
+)
+_DIGIT_FIX = str.maketrans("OolI", "0011")
+# Totals block: once we reach it, the items are over.
+_STOP_RE = re.compile(r"\b(?:sub\s*-?\s*total|total|tax|balance|amount\s+due)\b", re.IGNORECASE)
+# Payment / summary lines that are never items.
+_SKIP_RE = re.compile(
+    r"\b(?:cash|change|visa|mastercard|amex|discover|debit|credit|card|tip|gratuity|tender|payment|"
+    r"auth|approval|savings|saved|coupon|discount)\b",
+    re.IGNORECASE,
+)
+_LEAD_QTY = re.compile(r"^(?P<qty>\d{1,2})\s*[xX@]?\s+(?=\S)")
+_AT_QTY = re.compile(r"\b(?P<qty>\d{1,3})\s*[xX@]\s*\$?\d+[.,]\d{2}\b")
+_CODE = re.compile(r"(?:^|\s)\d{3,}(?=\s|$)")  # SKU / PLU numbers
 
 
 def preprocess(image_bytes: bytes):
@@ -103,11 +119,52 @@ def _find_date(text: str) -> date | None:
     return None
 
 
+def _letters(text: str) -> int:
+    return sum(c.isalpha() for c in text)
+
+
 def _find_line_items(lines: list[str]) -> list[LineItem]:
-    items = []
+    items: list[LineItem] = []
+    pending: str | None = None  # a text-only line whose price may be on the next line
     for line in lines:
-        if any(w in line.lower() for w in _SKIP_WORDS):
+        if _STOP_RE.search(line):
+            if items:
+                break
+            pending = None
             continue
-        if m := _ITEM_RE.match(line):
-            items.append(LineItem(description=m["desc"].strip(), amount=float(m["amt"])))
+        if _SKIP_RE.search(line):
+            pending = None
+            continue
+        m = _PRICE_TAIL.search(line)
+        if not m or not any(c.isdigit() for c in m["amt"]):
+            pending = line if _letters(line) >= 2 else None
+            continue
+        desc = line[: m.start()].strip()
+        if _letters(desc) < 2:
+            if desc or not pending:
+                pending = None
+                continue
+            desc = pending  # "Chicken Sandwich" / "45.00" split across two lines
+        pending = None
+        if m["neg"] or m["neg2"]:
+            continue  # discounts / voids
+        amount = float(re.sub(r"\s", "", m["amt"]).translate(_DIGIT_FIX).replace(",", "."))
+        item = _clean_item(desc, amount)
+        if item:
+            items.append(item)
     return items
+
+
+def _clean_item(desc: str, amount: float) -> LineItem | None:
+    qty = None
+    if at := _AT_QTY.search(desc):  # "Burger 2 @ 4.99"
+        qty = float(at["qty"])
+        desc = desc[: at.start()] + desc[at.end() :]
+    elif lead := _LEAD_QTY.match(desc):  # "2 Burger" / "2x Burger"
+        qty = float(lead["qty"])
+        desc = desc[lead.end() :]
+    desc = _CODE.sub(" ", desc)
+    desc = re.sub(r"\s{2,}", " ", desc).strip(" .:-*#|$")
+    if _letters(desc) < 2:
+        return None
+    return LineItem(description=desc, amount=amount, quantity=qty)

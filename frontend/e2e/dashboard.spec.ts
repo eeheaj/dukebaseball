@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { devices, expect, test } from "@playwright/test";
 import { installFakeApi, rel } from "./fake-api";
 
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6XnV2UAAAAASUVORK5CYII=", "base64");
@@ -97,6 +97,12 @@ test("new partnership posts the backend's shape and opens its page", async ({ pa
     company: "Bulls Pizza", contact_name: null, contact_email: null, commitment_type: "units", target: 150,
     start_date: "2026-09-01", end_date: "2027-05-31", discount_pct: null, deliverables: "Banner in left field\nTwo PA reads", tags: [],
   });
+
+  // Back on the list (via the arrow) the new deal shows up, and the receipt form can pick it.
+  await page.getByRole("link", { name: "Back to partnerships" }).click();
+  await expect(page.locator(".deal-card", { hasText: "Bulls Pizza" })).toBeVisible();
+  await page.goto("/receipts/new?manual=1");
+  await expect(page.getByLabel("Partnership *").locator("option", { hasText: "Bulls Pizza" })).toBeAttached();
 });
 
 test("receipts table filters by partner", async ({ page }) => {
@@ -145,4 +151,29 @@ test("upload from a deal's page: OCR with no partner match falls back to that de
   await page.getByRole("link", { name: "See Triangle Sports Supply progress" }).click();
   const row = page.getByRole("row", { name: /TSS STORE #4/ });
   await expect(row.getByRole("link", { name: "View" })).toHaveAttribute("href", /\/api\/receipts\/r-new-\d+\/image$/);
+});
+
+test("desktop: Upload photo opens a normal file picker (no camera)", async ({ page }) => {
+  await installFakeApi(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /Add Receipts/ }).click();
+  await expect(page.getByRole("menuitem", { name: /Upload photo/ })).toBeVisible();
+  await expect(page.getByTestId("add-receipt-file")).not.toHaveAttribute("capture");
+});
+
+test.describe("on a phone", () => {
+  const { defaultBrowserType: _ignored, ...pixel } = devices["Pixel 7"];
+  test.use(pixel);
+
+  test("Add Receipts offers Take photo, which opens the rear camera", async ({ page }) => {
+    await installFakeApi(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: /Add Receipts/ }).click();
+    await expect(page.getByRole("menuitem", { name: /Take photo/ })).toBeVisible();
+    await expect(page.getByTestId("add-receipt-file")).toHaveAttribute("capture", "environment");
+
+    await page.goto("/receipts/new");
+    await expect(page.getByText("Tap to take a photo of the receipt")).toBeVisible();
+    await expect(page.getByTestId("capture-file")).toHaveAttribute("capture", "environment");
+  });
 });
