@@ -1,0 +1,21 @@
+# Optional Render Blueprint for the API (Dashboard -> New -> Blueprint -> pick this repo).
+# Same result as creating the web service by hand; see DEPLOY.md.
+# Values marked sync: false are entered in the Render dashboard, never committed.
+services:
+  - type: web
+    name: dukebaseball-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # e.g. https://your-site.netlify.app
+      - key: DEV_NO_AUTH
+        value: "true" # prototype: no sign-in. Anyone with the site URL can use it.

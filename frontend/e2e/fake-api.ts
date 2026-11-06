@@ -59,10 +59,14 @@ export interface FakeApi {
   db: ReturnType<typeof seed>;
   calls: { method: string; path: string; body: unknown }[];
   ocrResult: Record<string, unknown>;
+  status: Record<string, unknown>;
 }
 
 export async function installFakeApi(page: Page): Promise<FakeApi> {
-  const api: FakeApi = { db: seed(), calls: [], ocrResult: {} };
+  const api: FakeApi = {
+    db: seed(), calls: [], ocrResult: {},
+    status: { tesseract: "5.4.0", supabase_url: true, supabase_key: "secret", database: "ok", dev_no_auth: true, ready: true },
+  };
   await page.route("**/api/**", async (route: Route) => {
     const req = route.request();
     const url = new URL(req.url());
@@ -74,7 +78,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     const { partnerships, receipts } = api.db;
     let m: RegExpMatchArray | null;
 
-    if (path === "/status") return json({ tesseract: "5.4.0", supabase_url: true, supabase_key: "secret", database: "ok", dev_no_auth: true, ready: true });
+    if (path === "/status") return json(api.status);
     if (path === "/partnerships" && method === "GET") return json([...partnerships].sort((a, b) => String(a.company).localeCompare(String(b.company))));
     if (path === "/partnerships" && method === "POST") {
       const created = { ...(body as object), id: `p-new-${partnerships.length}`, contract_path: null } as P;
@@ -111,6 +115,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const created = { ...(body as object), id: `r-new-${receipts.length}`, logged_by: null } as R;
       receipts.push(created);
       return json(created, 201);
+    }
+    if ((m = path.match(/^\/receipts\/([^/]+)\/image-url$/))) {
+      const r = receipts.find((x) => x.id === m![1]);
+      return r?.image_path ? json({ url: `${url.origin}/fake-storage/${r.image_path}` }) : json({ detail: "This receipt has no photo" }, 404);
     }
     if (path === "/ocr/receipt") return json(api.ocrResult);
     return json({ detail: `fake API has no route for ${method} ${path}` }, 404);

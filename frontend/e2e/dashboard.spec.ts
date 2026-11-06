@@ -150,7 +150,8 @@ test("upload from a deal's page: OCR with no partner match falls back to that de
   await expect(page.getByText("Receipt saved")).toBeVisible();
   await page.getByRole("link", { name: "See Triangle Sports Supply progress" }).click();
   const row = page.getByRole("row", { name: /TSS STORE #4/ });
-  await expect(row.getByRole("link", { name: "View" })).toHaveAttribute("href", /\/api\/receipts\/r-new-\d+\/image$/);
+  const [photoTab] = await Promise.all([page.waitForEvent("popup"), row.getByRole("button", { name: "View" }).click()]);
+  await expect(photoTab).toHaveURL(/\/fake-storage\/2026-11\/tss\.jpg$/);
 });
 
 test("desktop: Upload photo opens a normal file picker (no camera)", async ({ page }) => {

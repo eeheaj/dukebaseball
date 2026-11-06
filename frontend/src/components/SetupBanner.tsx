@@ -47,7 +47,7 @@ export default function SetupBanner({ onReady, onRecover }: { onReady?: () => vo
   if (status.supabase_key === "none")
     problems.push("No Supabase key: set SUPABASE_SERVICE_ROLE_KEY (secret) in .env, then restart the backend.");
   else if (status.database !== "ok") problems.push(`Database: ${status.database}`);
-  if (!status.dev_no_auth) problems.push("Sign-in isn't built yet: set DEV_NO_AUTH=true in .env.");
+  if (!status.dev_no_auth) problems.push("Sign-in is off for the prototype: set DEV_NO_AUTH=true in .env (or on Render).");
 
   return (
     <div className="banner warn">

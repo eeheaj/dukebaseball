@@ -1,0 +1,17 @@
+# Netlify builds only the frontend. The API runs on Render (see render.yaml).
+# Set in Netlify -> Site configuration -> Environment variables:
+#   VITE_API_URL   https://<your-api>.onrender.com
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Single-page app: let React Router handle /partnerships, /receipts/new, etc. on refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

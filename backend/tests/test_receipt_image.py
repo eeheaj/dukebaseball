@@ -30,19 +30,24 @@ def client():
     app.dependency_overrides[get_settings] = lambda: make_settings(DEV_NO_AUTH=True)
     app.dependency_overrides[receipts_api.get_receipt_repo] = FakeRepo
     app.dependency_overrides[receipts_api.get_image_store] = FakeStore
-    yield TestClient(app, follow_redirects=False)
+    yield TestClient(app)
     app.dependency_overrides.clear()
 
 
-def test_redirects_to_signed_photo_url(client):
-    r = client.get(f"/api/receipts/{WITH_PHOTO}/image")
-    assert r.status_code == 307
-    assert r.headers["location"].endswith("receipts/2026-11/abc.jpg?token=t")
+def test_returns_signed_photo_url(client):
+    r = client.get(f"/api/receipts/{WITH_PHOTO}/image-url")
+    assert r.status_code == 200
+    assert r.json()["url"].endswith("receipts/2026-11/abc.jpg?token=t")
+
+
+def test_requires_sign_in_when_auth_is_on(client):
+    app.dependency_overrides[get_settings] = lambda: make_settings(DEV_NO_AUTH=False)
+    assert client.get(f"/api/receipts/{WITH_PHOTO}/image-url").status_code == 401
 
 
 def test_404_when_receipt_has_no_photo(client):
-    assert client.get(f"/api/receipts/{NO_PHOTO}/image").status_code == 404
+    assert client.get(f"/api/receipts/{NO_PHOTO}/image-url").status_code == 404
 
 
 def test_404_for_unknown_receipt(client):
-    assert client.get("/api/receipts/00000000-0000-4000-8000-000000000009/image").status_code == 404
+    assert client.get("/api/receipts/00000000-0000-4000-8000-000000000009/image-url").status_code == 404
