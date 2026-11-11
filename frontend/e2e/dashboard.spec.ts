@@ -15,7 +15,7 @@ test("overview shows backend KPIs, deals by urgency, and recent receipts", async
   await expect(rows.nth(0)).toContainText("At Risk");
   await expect(page.getByRole("row", { name: /Bull City Burger/ })).toContainText("On Track");
   await expect(page.getByRole("row", { name: /Durham Bagel/ })).toContainText("Ended");
-  await expect(page.getByRole("link", { name: /Bull City Burger Team dinner, away trip \$412/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Bull City Burger Team dinner, away trip \$412/ })).toBeVisible();
 });
 
 test("partnerships search, sort, and detail page", async ({ page }) => {
@@ -162,6 +162,37 @@ test("desktop: Upload photo opens a normal file picker (no camera)", async ({ pa
   await expect(page.getByTestId("add-receipt-file")).not.toHaveAttribute("capture");
 });
 
+test("overview: clicking a deal, KPI or month opens its detail in a side panel, without leaving the page", async ({ page }) => {
+  await installFakeApi(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Triangle Sports Supply", exact: true }).click();
+  const panel = page.locator("aside .insight");
+  await expect(panel.getByRole("heading", { name: "Triangle Sports Supply" })).toBeVisible();
+  await expect(panel.getByTestId("insight-progress")).toHaveText("40 of 200 units");
+  await expect(panel).toContainText("Behind by");
+  await expect(page).toHaveURL(/\/$/);
+  // The page shifts left: the panel sits to the right of the deal table.
+  const table = await page.locator(".overview-main .table").boundingBox();
+  const side = await panel.boundingBox();
+  expect(side!.x).toBeGreaterThan(table!.x + table!.width);
+
+  await page.getByRole("button", { name: /^At Risk/ }).click();
+  await expect(panel.getByRole("heading", { name: "At risk" })).toBeVisible();
+  await expect(panel.locator(".mini-list li")).toHaveCount(2);
+  await panel.getByRole("button", { name: /Carolina Charter Bus/ }).click();
+  await expect(panel.getByRole("heading", { name: "Carolina Charter Bus" })).toBeVisible();
+
+  await page.locator(".vbar.peak").click(); // the biggest month in the fake data: $15,800
+  await expect(panel).toContainText("$15,800");
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+
+  await page.locator(".receipt-card").first().click();
+  await expect(panel.getByRole("heading", { name: "Triangle Sports Supply" })).toBeVisible();
+  await panel.getByRole("button", { name: "Close details" }).click();
+  await expect(panel).toHaveCount(0);
+});
+
 test.describe("on a phone", () => {
   const { defaultBrowserType: _ignored, ...pixel } = devices["Pixel 7"];
   test.use(pixel);
@@ -176,6 +207,19 @@ test.describe("on a phone", () => {
     await page.goto("/receipts/new");
     await expect(page.getByText("Tap to take a photo of the receipt")).toBeVisible();
     await expect(page.getByTestId("capture-file")).toHaveAttribute("capture", "environment");
+  });
+
+  test("overview: tapping a deal drops its detail down right under that row", async ({ page }) => {
+    await installFakeApi(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Carolina Charter Bus", exact: true }).click();
+    await expect(page.locator("aside")).toHaveCount(0);
+    const row = page.locator("tbody tr", { hasText: "Carolina Charter Bus" }).first();
+    const drop = row.locator("xpath=following-sibling::tr[1]");
+    await expect(drop).toHaveClass(/expand/);
+    await expect(drop.getByRole("heading", { name: "Carolina Charter Bus" })).toBeVisible();
+    await page.getByRole("button", { name: "Carolina Charter Bus", exact: true }).click();
+    await expect(page.locator(".insight")).toHaveCount(0);
   });
 
   test("no page scrolls sideways on a small phone, and the nav links stay visible", async ({ page }) => {
