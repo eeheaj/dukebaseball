@@ -1,12 +1,23 @@
+import { useEffect, useRef, useState } from "react";
 import type { Partnership, Receipt } from "../api";
 import { addDays, daysBetween, money, shortDate, todayISO } from "../format";
 
 /**
  * "Actual vs. pace needed": cumulative progress (solid) against a straight line
- * from 0 at the start date to the target at the end date (dashed). Plain SVG.
+ * from 0 at the start date to the target at the end date (dashed). Plain SVG, drawn at the
+ * container's real pixel width so labels stay readable on phones instead of shrinking.
  */
 export default function PaceChart({ partnership: p, receipts }: { partnership: Partnership; receipts: Receipt[] }) {
-  const W = 640, H = 200, PAD = { l: 52, r: 12, t: 10, b: 24 };
+  const ref = useRef<HTMLElement>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(240, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = 200, PAD = { l: 52, r: 12, t: 10, b: 24 };
   const span = Math.max(daysBetween(p.start_date, p.end_date), 1);
   const today = todayISO();
   const lastDay = Math.min(span, Math.max(0, daysBetween(p.start_date, today)));
@@ -35,7 +46,7 @@ export default function PaceChart({ partnership: p, receipts }: { partnership: P
   const xTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * span));
 
   return (
-    <figure className="chart">
+    <figure className="chart" ref={ref}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Actual progress compared with the pace needed to hit the target">
         {ticks.map((t) => (
           <g key={t}>
@@ -43,8 +54,9 @@ export default function PaceChart({ partnership: p, receipts }: { partnership: P
             <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end">{fmt(t)}</text>
           </g>
         ))}
-        {xTicks.map((d) => (
-          <text key={d} x={x(d)} y={H - 6} textAnchor="middle">{shortDate(addDays(p.start_date, d))}</text>
+        {xTicks.map((d, i) => (
+          // First and last labels hug the edges so they aren't cut off.
+          <text key={d} x={x(d)} y={H - 6} textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}>{shortDate(addDays(p.start_date, d))}</text>
         ))}
         <line x1={x(0)} y1={y(0)} x2={x(span)} y2={y(p.target)} className="pace" />
         <polyline points={steps.map(([d, v]) => `${x(d)},${y(v)}`).join(" ")} className="actual" />

@@ -177,4 +177,18 @@ test.describe("on a phone", () => {
     await expect(page.getByText("Tap to take a photo of the receipt")).toBeVisible();
     await expect(page.getByTestId("capture-file")).toHaveAttribute("capture", "environment");
   });
+
+  test("no page scrolls sideways on a small phone, and the nav links stay visible", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await installFakeApi(page);
+    for (const path of ["/", "/partnerships", "/partnerships/p-tss", "/partnerships/new", "/receipts", "/receipts/new"]) {
+      await page.goto(path);
+      await expect(page.locator("main")).not.toContainText("Loading");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, `${path} is wider than the screen`).toBeLessThanOrEqual(0);
+      for (const name of ["Overview", "Partnerships", "Receipts"]) {
+        await expect(page.getByRole("navigation").getByRole("link", { name, exact: true })).toBeInViewport({ ratio: 1 });
+      }
+    }
+  });
 });
