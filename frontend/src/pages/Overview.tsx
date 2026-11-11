@@ -19,7 +19,10 @@ export default function Overview() {
 
   return (
     <>
-      <div className="page-actions"><AddReceiptMenu /></div>
+      <div className="page-head">
+        <h1>Overview</h1>
+        <AddReceiptMenu />
+      </div>
 
       <div className="kpis">
         <div className="kpi"><span>Active Deals</span><strong data-testid="kpi-active">{kpis.active_deals}</strong></div>
@@ -36,12 +39,12 @@ export default function Overview() {
             {[...rows].sort(byUrgency).map((r) => (
               <tr key={r.p.id} className="clickable" onClick={() => navigate(`/partnerships/${r.p.id}`)}>
                 <td className="strong"><Link to={`/partnerships/${r.p.id}`}>{r.p.company}</Link></td>
-                <td>
+                <td data-label="Progress">
                   <div className="sub">{progressText(r.p, r.prog.progress)}</div>
                   <ProgressBar pct={r.prog.progress_pct} />
                 </td>
-                <td>{timeLeft(r)}</td>
-                <td><StatusPill status={r.prog.status} /></td>
+                <td data-label="Time left">{timeLeft(r)}</td>
+                <td className="status-cell"><StatusPill status={r.prog.status} /></td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td colSpan={4} className="empty">No partnerships yet. <Link to="/partnerships/new">Add one</Link>.</td></tr>}

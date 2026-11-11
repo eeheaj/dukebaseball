@@ -63,12 +63,12 @@ export default function PartnershipDetail() {
           <tbody>
             {receipts.map((r) => (
               <tr key={r.id}>
-                <td>{shortDate(r.purchase_date)}</td>
-                <td>{r.vendor}</td>
-                <td>{money(r.amount, true)}</td>
-                {units && <td>{r.units ?? "-"}</td>}
-                <td>{r.event ?? ""}</td>
-                <td>{r.image_path && <PhotoLink receiptId={r.id} />}</td>
+                <td data-label="Date">{shortDate(r.purchase_date)}</td>
+                <td data-label="Vendor">{r.vendor}</td>
+                <td data-label="Total">{money(r.amount, true)}</td>
+                {units && <td data-label="Units">{r.units ?? "-"}</td>}
+                <td data-label="Trip / event">{r.event ?? ""}</td>
+                <td data-label="Photo">{r.image_path && <PhotoLink receiptId={r.id} />}</td>
               </tr>
             ))}
             {receipts.length === 0 && <tr><td colSpan={units ? 6 : 5} className="empty">No receipts yet.</td></tr>}

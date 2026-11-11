@@ -54,15 +54,15 @@ export default function Receipts() {
                 className={r.partnership_id ? "clickable" : ""}
                 onClick={() => r.partnership_id && navigate(`/partnerships/${r.partnership_id}`)}
               >
-                <td>{shortDate(r.purchase_date)}</td>
-                <td>{company(r.partnership_id)}</td>
-                <td>{r.vendor}</td>
-                <td>{money(r.amount, true)}</td>
-                <td>
+                <td data-label="Date">{shortDate(r.purchase_date)}</td>
+                <td data-label="Partner">{company(r.partnership_id)}</td>
+                <td data-label="Vendor">{r.vendor}</td>
+                <td data-label="Total">{money(r.amount, true)}</td>
+                <td data-label="Photo">
                   {r.image_path && <PhotoLink receiptId={r.id} />}
                 </td>
                 {/* logged_by stays empty until sign-in is built (DEV_NO_AUTH). */}
-                <td>{r.logged_by ? "Staff" : "Not recorded"}</td>
+                <td data-label="Logged by">{r.logged_by ? "Staff" : "Not recorded"}</td>
               </tr>
             ))}
             {data && shown.length === 0 && <tr><td colSpan={6} className="empty">No receipts match these filters.</td></tr>}
